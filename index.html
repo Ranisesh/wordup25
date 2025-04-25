@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WordUp Editor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    #editor {
+      margin: 20px auto;
+      padding: 10px;
+      border: 1px solid #ccc;
+      min-height: 400px;
+      overflow-y: auto;
+      max-width: 90%;
+      background-color: #f9f9f9;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 10px 0;
+    }
+    .toolbar button {
+      margin: 5px;
+      padding: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #e7e7e7;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <h1>WordUp Editor</h1>
+  <div class="toolbar">
+    <button onclick="document.execCommand('bold')">Bold</button>
+    <button onclick="document.execCommand('italic')">Italic</button>
+    <button onclick="document.execCommand('underline')">Underline</button>
+    <button onclick="changeColor()">Color</button>
+    <button onclick="insertLink()">Link</button>
+    <button onclick="exportToHTML()">Export to HTML</button>
+    <button onclick="exportToPDF()">Export to PDF</button>
+    <button onclick="increaseFontSize()">A+</button>
+    <button onclick="decreaseFontSize()">A-</button>
+    <button onclick="justifyText()">Justify</button>
+  </div>
+  <div id="editor" contenteditable="true">
+    <p>Start typing your document here...</p>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+
+  <script>
+    function changeColor() {
+      const color = prompt("Enter a color (e.g., red, #ff0000):");
+      if (color) document.execCommand("foreColor", false, color);
+    }
+
+    function insertLink() {
+      const url = prompt("Enter URL:");
+      if (url) {
+        const text = prompt("Text to display:", url);
+        const html = `<a href="${url}" target="_blank">${text || url}</a>`;
+        document.execCommand("insertHTML", false, html);
+      }
+    }
+
+    function exportToHTML() {
+      const content = document.getElementById("editor").innerHTML;
+      const fullHTML = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Exported WordUp</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+    a { color: blue; text-decoration: underline; }
+  </style>
+</head>
+<body>
+  ${content}
+</body>
+</html>`;
+      const blob = new Blob([fullHTML], { type: "text/html" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "wordup-document.html";
+      a.click();
+    }
+
+    async function exportToPDF() {
+      const { PDFDocument } = PDFLib;
+      const text = document.getElementById("editor").innerText;
+
+      const pdfDoc = await PDFDocument.create();
+      const page = pdfDoc.addPage([595, 842]);
+      const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+      const fontSize = 12;
+      const lines = text.split("\n");
+      let y = 800;
+
+      lines.forEach(line => {
+        if (y < 50) {
+          page = pdfDoc.addPage([595, 842]);
+          y = 800;
+        }
+        page.drawText(line, {
+          x: 50,
+          y,
+          size: fontSize,
+          font,
+        });
+        y -= fontSize + 5;
+      });
+
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "wordup-document.pdf";
+      a.click();
+    }
+
+    function increaseFontSize() {
+      const selection = window.getSelection();
+      const selectedText = selection.toString();
+      if (selectedText) {
+        document.execCommand('fontSize', false, '5'); // Large size (5 is big)
+      }
+    }
+
+    function decreaseFontSize() {
+      const selection = window.getSelection();
+      const selectedText = selection.toString();
+      if (selectedText) {
+        document.execCommand('fontSize', false, '1'); // Small size (1 is tiny)
+      }
+    }
+
+    function justifyText() {
+      document.execCommand("justifyFull");
+    }
+  </script>
+</body>
+</html>
