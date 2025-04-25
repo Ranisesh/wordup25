@@ -36,10 +36,16 @@
       background-color: #e7e7e7;
       color: #333;
     }
+    #fileInput {
+      margin: 10px auto;
+    }
   </style>
 </head>
 <body>
   <h1>WordUp Editor</h1>
+
+  <input type="file" id="fileInput" accept=".txt" />
+
   <div class="toolbar">
     <button onclick="document.execCommand('bold')">Bold</button>
     <button onclick="document.execCommand('italic')">Italic</button>
@@ -47,18 +53,30 @@
     <button onclick="changeColor()">Color</button>
     <button onclick="insertLink()">Link</button>
     <button onclick="exportToHTML()">Export to HTML</button>
-    <button onclick="exportToPDF()">Export to PDF</button>
     <button onclick="increaseFontSize()">A+</button>
     <button onclick="decreaseFontSize()">A-</button>
     <button onclick="justifyText()">Justify</button>
   </div>
+
   <div id="editor" contenteditable="true">
     <p>Start typing or Paste your document here...</p>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-
   <script>
+    // Load .txt file
+    document.getElementById("fileInput").addEventListener("change", function(event) {
+      const file = event.target.files[0];
+      if (file && file.type === "text/plain") {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById("editor").innerText = e.target.result;
+        };
+        reader.readAsText(file);
+      } else {
+        alert("Please upload a .txt file only.");
+      }
+    });
+
     function changeColor() {
       const color = prompt("Enter a color (e.g., red, #ff0000):");
       if (color) document.execCommand("foreColor", false, color);
@@ -98,44 +116,11 @@
       a.click();
     }
 
-    async function exportToPDF() {
-      const { PDFDocument } = PDFLib;
-      const text = document.getElementById("editor").innerText;
-
-      const pdfDoc = await PDFDocument.create();
-      const page = pdfDoc.addPage([595, 842]);
-      const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-      const fontSize = 12;
-      const lines = text.split("\n");
-      let y = 800;
-
-      lines.forEach(line => {
-        if (y < 50) {
-          page = pdfDoc.addPage([595, 842]);
-          y = 800;
-        }
-        page.drawText(line, {
-          x: 50,
-          y,
-          size: fontSize,
-          font,
-        });
-        y -= fontSize + 5;
-      });
-
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: "application/pdf" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "wordup-document.pdf";
-      a.click();
-    }
-
     function increaseFontSize() {
       const selection = window.getSelection();
       const selectedText = selection.toString();
       if (selectedText) {
-        document.execCommand('fontSize', false, '5'); // Large size (5 is big)
+        document.execCommand('fontSize', false, '5');
       }
     }
 
@@ -143,7 +128,7 @@
       const selection = window.getSelection();
       const selectedText = selection.toString();
       if (selectedText) {
-        document.execCommand('fontSize', false, '1'); // Small size (1 is tiny)
+        document.execCommand('fontSize', false, '1');
       }
     }
 
